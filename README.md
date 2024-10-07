@@ -53,9 +53,6 @@ Below is a list of available commands for interacting with the application:
 - `leave_space channel_name`  
   Leaves the specified `channel_name`.
 
-- `connect username password`  
-  Connects to the server with the provided `username` and `password`.
-
 - `disconnect`  
   Disconnects the current user from the server.
 
