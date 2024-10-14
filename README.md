@@ -8,27 +8,52 @@ Slime is a real-time messaging application with file-sharing capabilities and mu
 ## How to Use
 
 ### 1. Compiling the Client
-To compile the client code, use the following command:
+
+To compile the client code, you have two options:
+
+Using `gcc`:
 ```bash
 gcc client.c -o client -lpthread
 ```
 
+Or using the `make` command:
+```bash
+make client
+```
+
 ### 2. Compiling the Server
-To compile the server code with SQLite support, use this command:
+
+To compile the server code with SQLite support, you can also choose between:
+
+Using `gcc`:
 ```bash
 gcc server.c -o server -lsqlite3 -lpthread
 ```
 
+Or using the `make` command:
+```bash
+make server
+```
+
 ### 3. Launching the Server
+
 Start the server by running:
 ```bash
 ./server
 ```
 
 ### 4. Launching Clients
+
 You can launch as many clients as you need with the following command:
 ```bash
 ./client
+```
+
+### 5. Cleaning up
+
+To clean up the generated files (client and server), you can run:
+```bash
+make clean
 ```
 
 ## Commands
@@ -55,7 +80,7 @@ Below is a list of available commands for interacting with the application:
 - `list_users`  
   Lists the users in the current channel.
 
-- `help`
+- `help`  
   Displays all available commands.
 
 - `send_files path_to_file1 path_to_file2 ...`  
