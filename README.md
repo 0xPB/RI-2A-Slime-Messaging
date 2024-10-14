@@ -35,22 +35,30 @@ You can launch as many clients as you need with the following command:
 
 Below is a list of available commands for interacting with the application:
 
+### User Commands:
+
 - `join channel_name`  
   Joins the specified `channel_name`.
 
 - `leave`  
-  Leaves current channel
+  Leaves the current channel.
 
 - `current`  
-  Display current channel
+  Displays the current channel.
 
 - `disconnect`  
   Disconnects the current user from the server.
 
- Will be implemented:
-
- - `send_files path_to_file1 path_to_file2 ...`  
+- `send_files path_to_file1 path_to_file2 ...`  
   Sends one or more files to the current channel.
+
+- `list_channel`  
+  Lists all existing channels.
+
+- `list_users`  
+  Lists the users in the current channel.
+
+### Admin Commands:
 
 - `create_channel channel_name`  
   Creates a new channel with the specified `channel_name`.
@@ -58,8 +66,44 @@ Below is a list of available commands for interacting with the application:
 - `delete_channel channel_name`  
   Deletes the channel with the specified `channel_name`.
 
-- `list_channel`  
-  Lists all existing channels.
+- `list_admin`  
+  Lists all connected users, accessible by administrators.
+
+### Server Commands:
+
+- `shut`  
+  Shuts down the server and removes temporary files. This command is executed on the server (`server.c`).
+
+### Summary of User Commands (Non-Administrators):
+
+| Syntax                     | Action                                         |
+|-----------------------------|------------------------------------------------|
+| `send_files path_to_file1 path_to_file2 ...` | Sends one or more files to the current channel. |
+| `current`                   | Notifies the user of the current channel.      |
+| `join channel_name`          | Joins the channel named "channel_name".        |
+| `leave`                     | Leaves the current channel.                   |
+| `list_users`                | Lists the users in the current channel.        |
+| `list_channel`              | Lists all channels.                           |
+| `disconnect`                | Disconnects the current user.                 |
+
+### Summary of Admin Commands:
+
+| Syntax                     | Action                                         |
+|-----------------------------|------------------------------------------------|
+| `list_admin`                | Lists all users connected to the server (administrators only). |
+| `create_channel channel_name`| Creates a channel named "channel_name".       |
+| `delete_channel channel_name`| Deletes the channel named "channel_name".     |
+| `current`                   | Notifies the user of the current channel.      |
+| `join channel_name`          | Joins the channel named "channel_name".        |
+| `leave`                     | Leaves the current channel.                   |
+| `list_users`                | Lists the users in the current channel.        |
+| `disconnect`                | Disconnects the current user.                 |
+
+### Summary of Server Commands:
+
+| Syntax   | Action                                    |
+|----------|-------------------------------------------|
+| `shut`   | Shuts down the server and removes temporary files. |
 
 ## License
 
