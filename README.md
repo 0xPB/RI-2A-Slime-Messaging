@@ -94,6 +94,9 @@ Below is a list of available commands for interacting with the application:
 - `send filename`  
   Sends a file named `filename`.
 
+- `receive filename`  
+  Receives a file in the current channel. `filename` is the name of the file you want to receive.
+
 ### Admin Commands:
 
 - `create channel_name`  
