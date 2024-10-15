@@ -1,13 +1,21 @@
 
-# Slime
+# 🟢 Slime
 
 ## Overview
 
 Slime is a real-time messaging application with file-sharing capabilities and multiple channels. Users can create, join, and manage channels, as well as send files within the channels. This project provides a simple client-server architecture.
 
-## How to Use
+## 🚀 How to Use
 
-### 1. Compiling the Client
+### 🔧 Before Compiling
+
+You can compile both the client and the server at once with the following command:
+
+```bash
+make all
+```
+
+### 1. 🔨 Compiling the Client
 
 To compile the client code, you have two options:
 
@@ -21,7 +29,7 @@ Or using the `make` command:
 make client
 ```
 
-### 2. Compiling the Server
+### 2. 🔨 Compiling the Server
 
 To compile the server code with SQLite support, you can also choose between:
 
@@ -35,28 +43,36 @@ Or using the `make` command:
 make server
 ```
 
-### 3. Launching the Server
+### 3. ▶️ Launching the Server
 
 Start the server by running:
 ```bash
 ./server
 ```
 
-### 4. Launching Clients
+### 4. ▶️ Launching Clients
 
 You can launch as many clients as you need with the following command:
 ```bash
 ./client
 ```
 
-### 5. Cleaning up
+### 5. 🧹 Cleaning Up
 
-To clean up the generated files (client and server), you can run:
+You can clean up all generated binaries (client and server) using:
 ```bash
 make clean
 ```
 
-## Commands
+### 6. 🔄 Additional Makefile Commands
+
+- `make all`  
+  Compiles both the client and the server.
+
+- `make clean`  
+  Removes all compiled binaries.
+
+## 📝 Commands
 
 Below is a list of available commands for interacting with the application:
 
@@ -102,6 +118,6 @@ Below is a list of available commands for interacting with the application:
 - `shut`  
   Shuts down the server and removes temporary files. This command is executed on the server (`server.c`).
 
-## License
+## 📜 License
 
 This project is licensed under the GPLv3 License. See the `LICENSE` file for more information.
