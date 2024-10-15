@@ -47,14 +47,14 @@ make server
 
 Start the server by running:
 ```bash
-./server
+./server.exe
 ```
 
 ### 4. ▶️ Launching Clients
 
 You can launch as many clients as you need with the following command:
 ```bash
-./client
+./client.exe
 ```
 
 ### 5. 🧹 Cleaning Up
