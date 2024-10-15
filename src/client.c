@@ -4,8 +4,15 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 #include <pthread.h>
+#include <sqlite3.h>
+#include <stdbool.h>
+#include <sys/stat.h>
+#include <string.h>
+#include <fcntl.h>
+#include <errno.h>
 
 #define BUFFER_SIZE 1024
+#define PACKET_SIZE 1024
 
 char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
 
@@ -35,6 +42,91 @@ void print_message(const char *message, const char *current_input)
     fflush(stdout); // S'assurer que le tampon est vidé
 }
 
+void send_file(int socket, const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de l'ouverture du fichier");
+        return;
+    }
+
+    char buffer[PACKET_SIZE];
+    size_t bytes_read;
+    ssize_t bytes_sent;
+    size_t total_bytes_sent = 0;
+
+    // Envoyer le fichier en paquets
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0)
+    {
+        size_t total_sent = 0;
+        while (total_sent < bytes_read)
+        {
+            bytes_sent = send(socket, buffer + total_sent, bytes_read - total_sent, 0);
+            if (bytes_sent < 0)
+            {
+                perror("Erreur lors de l'envoi du fichier");
+                fclose(file);
+                return;
+            }
+            total_sent += bytes_sent;
+        }
+        total_bytes_sent += total_sent;
+    }
+
+    if (ferror(file))
+    {
+        perror("Erreur lors de la lecture du fichier");
+    }
+    else
+    {
+        printf("Fichier %s envoyé avec succès (%zu octets).\n", filename, total_bytes_sent);
+    }
+
+    fclose(file);
+
+    // Envoyer un paquet vide pour signaler la fin de la transmission
+    send(socket, "", 0, 0);
+}
+
+void receive_file_from_server(int socket, const char *filename)
+{
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de la création du fichier");
+        return;
+    }
+
+    char buffer[PACKET_SIZE];
+    ssize_t bytes_received;
+    size_t total_bytes_received = 0;
+
+    // Recevoir le fichier en paquets
+    while ((bytes_received = recv(socket, buffer, sizeof(buffer), 0)) > 0)
+    {
+        fwrite(buffer, 1, bytes_received, file);
+        total_bytes_received += bytes_received;
+
+        // Si moins que PACKET_SIZE est reçu, on a atteint la fin du fichier
+        if (bytes_received < PACKET_SIZE)
+        {
+            break;
+        }
+    }
+
+    if (bytes_received < 0)
+    {
+        perror("Erreur lors de la réception du fichier");
+    }
+    else
+    {
+        printf("Fichier %s reçu avec succès (%zu octets).\n", filename, total_bytes_received);
+    }
+
+    fclose(file);
+}
+
 void *receive_messages(void *client_socket)
 {
     int client_fd = *(int *)client_socket;
@@ -62,59 +154,6 @@ void *receive_messages(void *client_socket)
     pthread_exit(NULL);
 }
 
-// Remplacez ces variables par celles de votre projet
-const char *remote_user = "handrejewsk";                                   // Nom d'utilisateur sur le serveur
-const char *remote_host = "10.7.2.203";                                    // Adresse IP ou nom de domaine du serveur
-const char *remote_path = "/net/netud/r/handrejewsk/RE213/projet/server/"; // Chemin du dossier de destination sur le serveur
-
-void send_file(const char *local_file)
-{
-    if (strlen(current_channel) == 0)
-    {
-        printf("Vous n'êtes dans aucun salon. Veuillez rejoindre un salon avant d'envoyer des fichiers.\n");
-        return;
-    }
-
-    char remote_path_with_channel[256];
-    snprintf(remote_path_with_channel, sizeof(remote_path_with_channel), "%s%s/", remote_path, current_channel);
-
-    char command[1024];
-    snprintf(command, sizeof(command), "scp %s %s@%s:%s", local_file, remote_user, remote_host, remote_path_with_channel);
-    int ret = system(command);
-    if (ret == 0)
-    {
-        printf("Fichier %s envoyé avec succès dans le salon %s.\n", local_file, current_channel);
-    }
-    else
-    {
-        printf("Erreur lors de l'envoi du fichier %s dans le salon %s.\n", local_file, current_channel);
-    }
-}
-
-void receive_file(const char *remote_file, const char *local_path)
-{
-    if (strlen(current_channel) == 0)
-    {
-        printf("Vous n'êtes dans aucun salon. Veuillez rejoindre un salon avant de recevoir des fichiers.\n");
-        return;
-    }
-
-    char remote_path_with_channel[256];
-    snprintf(remote_path_with_channel, sizeof(remote_path_with_channel), "%s%s/", remote_path, current_channel);
-
-    char command[1024];
-    snprintf(command, sizeof(command), "scp %s@%s:%s%s %s", remote_user, remote_host, remote_path_with_channel, remote_file, local_path);
-    int ret = system(command);
-    if (ret == 0)
-    {
-        printf("Fichier %s reçu avec succès depuis le salon %s.\n", remote_file, current_channel);
-    }
-    else
-    {
-        printf("Erreur lors de la réception du fichier %s depuis le salon %s.\n", remote_file, current_channel);
-    }
-}
-
 void *send_messages(void *client_socket)
 {
     int client_fd = *(int *)client_socket;
@@ -131,31 +170,7 @@ void *send_messages(void *client_socket)
         // Sauvegarder l'entrée actuelle dans current_input
         strncpy(current_input, buffer, BUFFER_SIZE);
 
-        if (strncmp(buffer, "send ", 5) == 0)
-        {
-            char *filename = buffer + 5; // Récupérer le nom de fichier
-            if (*filename)
-            { // Vérifier que le nom de fichier n'est pas vide
-                send_file(filename);
-            }
-            else
-            {
-                printf("Nom de fichier manquant.\n");
-            }
-        }
-        else if (strncmp(buffer, "receive ", 8) == 0)
-        {
-            char *filename = buffer + 8; // Récupérer le nom de fichier
-            if (*filename)
-            { // Vérifier que le nom de fichier n'est pas vide
-                receive_file(filename, ".");
-            }
-            else
-            {
-                printf("Nom de fichier manquant.\n");
-            }
-        }
-        else if (strcmp(buffer, "help") == 0)
+        if (strcmp(buffer, "help") == 0)
         {
             printf("\nLister tout les salons\t\t\t\tUsage : list\n");
             printf("\nAfficher le salon actuel\t\t\tUsage : current\n");
@@ -168,21 +183,47 @@ void *send_messages(void *client_socket)
             printf("\nSe déconnecter du serveur.\t\t\tUsage : disconnect\n");
             printf("\n");
         }
-        else if (strncmp(buffer, "join ", 5) == 0)
-        {                                    // Gérer la commande join
-            char *channel_name = buffer + 5; // Récupérer le nom du salon
-            if (*channel_name)
-            {                                                                        // Vérifier que le nom du salon n'est pas vide
-                strncpy(current_channel, channel_name, sizeof(current_channel) - 1); // Mettre à jour le salon actuel
-                current_channel[sizeof(current_channel) - 1] = '\0';                 // Assurer la terminaison de la chaîne
-                printf("Vous avez rejoint le salon : %s\n", current_channel);
+
+        else if (strncmp(buffer, "send ", 5) == 0)
+        {
+            char *filename = buffer + 5; // Récupérer le nom de fichier
+            if (*filename)
+            {
+                printf("Envoi du fichier : %s au salon %s\n", filename, current_channel);
+
+                // Envoyer d'abord la commande pour informer le serveur du nom du salon
+                char command[BUFFER_SIZE];
+                snprintf(command, sizeof(command), "send %s %s", current_channel, filename); // Inclure le nom du salon
+                send(client_fd, command, strlen(command), 0);                                // Envoyer la commande au serveur
+
+                // Envoyer le fichier
+                send_file(client_fd, filename); // Appeler la fonction pour envoyer le fichier
             }
             else
             {
-                printf("Nom de salon manquant.\n");
+                printf("Nom de fichier manquant.\n");
             }
-            send(client_fd, buffer, strlen(buffer), 0); // Envoyer la commande au serveur
         }
+
+        else if (strncmp(buffer, "receive ", 8) == 0)
+        {
+            char *filename = buffer + 8; // Récupérer le nom de fichier
+            if (*filename)
+            {
+                printf("Réception du fichier : %s\n", filename);
+
+                // Envoyer la commande de réception de fichier au serveur
+                send(client_fd, buffer, strlen(buffer), 0);
+
+                // Recevoir le fichier
+                receive_file_from_server(client_fd, filename);
+            }
+            else
+            {
+                printf("Nom de fichier manquant.\n");
+            }
+        }
+
         else if (strcmp(buffer, "disconnect") == 0)
         { // Gérer la déconnexion
             send(client_fd, buffer, strlen(buffer), 0);

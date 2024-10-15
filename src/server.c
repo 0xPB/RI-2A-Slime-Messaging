@@ -13,6 +13,7 @@
 
 #define BUFFER_SIZE 1024
 #define MAX_CLIENTS 10
+#define PACKET_SIZE 1024
 
 typedef struct
 {
@@ -75,7 +76,7 @@ void clean_input(char *str)
     char *pos;
     if ((pos = strchr(str, '\n')) != NULL)
     {
-        *pos = '\0'; // Retirer le retour à la ligne
+        *pos = '\0'; // Remplacer le retour à la ligne par un caractère de fin de chaîne
     }
 }
 
@@ -137,6 +138,42 @@ void store_file_in_salon(const char *salon_name, const char *filename)
     system(command);
 }
 
+void store_message_in_db(const char *channel, const char *username, const char *message)
+{
+    sqlite3 *db;
+    sqlite3_stmt *stmt;
+
+    if (sqlite3_open("database.db", &db) != SQLITE_OK)
+    {
+        fprintf(stderr, "Erreur lors de l'ouverture de la base de données : %s\n", sqlite3_errmsg(db));
+        return;
+    }
+
+    // Préparer la requête SQL pour insérer le message
+    const char *sql = "INSERT INTO messages (salon_id, username, message) VALUES ((SELECT id FROM salons WHERE name = ?), ?, ?);";
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
+    {
+        fprintf(stderr, "Erreur lors de la préparation de la requête SQL : %s\n", sqlite3_errmsg(db));
+        sqlite3_close(db);
+        return;
+    }
+
+    // Lier les valeurs du nom du salon, du nom d'utilisateur et du message à la requête SQL
+    sqlite3_bind_text(stmt, 1, channel, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 2, username, -1, SQLITE_STATIC);
+    sqlite3_bind_text(stmt, 3, message, -1, SQLITE_STATIC);
+
+    // Exécuter la requête SQL
+    if (sqlite3_step(stmt) != SQLITE_DONE)
+    {
+        fprintf(stderr, "Erreur lors de l'insertion du message : %s\n", sqlite3_errmsg(db));
+    }
+
+    // Finaliser et fermer la connexion à la base de données
+    sqlite3_finalize(stmt);
+    sqlite3_close(db);
+}
+
 void clear_server_directory()
 {
     system("rm -rf server/*");
@@ -153,19 +190,72 @@ void send_message_to_channel(const char *channel, const char *message, int sende
         }
     }
     pthread_mutex_unlock(&clients_mutex);
+
+    // Extraire le nom d'utilisateur de l'envoyeur et stocker le message dans la base de données
+    for (int i = 0; i < MAX_CLIENTS; i++)
+    {
+        if (clients[i] && clients[i]->socket == sender_socket)
+        {
+            store_message_in_db(channel, clients[i]->username, message);
+            break;
+        }
+    }
 }
 
-void notify_current_channel(client_t *client)
+void clear_messages_in_db()
 {
-    if (strlen(client->current_channel) > 0)
+    sqlite3 *db;
+
+    if (sqlite3_open("database.db", &db) != SQLITE_OK)
     {
-        char message[BUFFER_SIZE];
-        snprintf(message, sizeof(message), "Salon actuel : %s\n", client->current_channel);
-        send(client->socket, message, strlen(message), 0);
+        fprintf(stderr, "Erreur lors de l'ouverture de la base de données : %s\n", sqlite3_errmsg(db));
+        return;
+    }
+
+    // Requête SQL pour supprimer tous les messages
+    const char *sql = "DELETE FROM messages;";
+    char *err_msg = 0;
+
+    if (sqlite3_exec(db, sql, 0, 0, &err_msg) != SQLITE_OK)
+    {
+        fprintf(stderr, "Erreur lors de la suppression des messages : %s\n", err_msg);
+        sqlite3_free(err_msg);
     }
     else
     {
-        send(client->socket, "Vous n'êtes dans aucun salon.\n", 31, 0);
+        printf("Tous les messages ont été supprimés de la base de données.\n");
+    }
+
+    sqlite3_close(db);
+}
+
+
+void notify_current_channel(client_t *client)
+{
+    // Vérification que le client n'est pas NULL et que le salon actuel est valide
+    if (client != NULL && strlen(client->current_channel) > 0)
+    {
+        // Ajout d'un message de débogage pour s'assurer que la chaîne est correcte
+        printf("Salon actuel du client %s = %s\n", client->username, client->current_channel);
+
+        // Créer un message à envoyer au client
+        char message[BUFFER_SIZE];
+        snprintf(message, sizeof(message), "Salon actuel : %s\n", client->current_channel);
+
+        // Envoyer le message au client
+        if (send(client->socket, message, strlen(message), 0) < 0)
+        {
+            perror("Erreur lors de l'envoi du message de salon actuel");
+        }
+    }
+    else
+    {
+        // Si aucun salon n'est rejoint, informer le client
+        printf("Client %s n'a rejoint aucun salon.\n", client->username);
+        if (send(client->socket, "Vous n'êtes dans aucun salon.\n", 31, 0) < 0)
+        {
+            perror("Erreur lors de l'envoi du message d'absence de salon");
+        }
     }
 }
 
@@ -201,35 +291,41 @@ int channel_exists(const char *channel_name)
     return exists;
 }
 
-void create_salon_directory(const char *salon_name) {
+void create_salon_directory(const char *salon_name)
+{
     char directory_path[256];
     snprintf(directory_path, sizeof(directory_path), "server/%s", salon_name);
 
     // Créer le dossier si nécessaire
     struct stat st = {0};
-    if (stat(directory_path, &st) == -1) {
+    if (stat(directory_path, &st) == -1)
+    {
         mkdir(directory_path, 0700);
         printf("Dossier créé pour le salon : %s\n", salon_name);
     }
 }
 
-void initialize_salon_directories() {
+void initialize_salon_directories()
+{
     sqlite3 *db;
     sqlite3_stmt *stmt;
 
-    if (sqlite3_open("database.db", &db) != SQLITE_OK) {
+    if (sqlite3_open("database.db", &db) != SQLITE_OK)
+    {
         fprintf(stderr, "Can't open database: %s\n", sqlite3_errmsg(db));
         return;
     }
 
     const char *sql = "SELECT name FROM salons;";
-    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK) {
+    if (sqlite3_prepare_v2(db, sql, -1, &stmt, 0) != SQLITE_OK)
+    {
         fprintf(stderr, "Failed to prepare statement: %s\n", sqlite3_errmsg(db));
         sqlite3_close(db);
         return;
     }
 
-    while (sqlite3_step(stmt) == SQLITE_ROW) {
+    while (sqlite3_step(stmt) == SQLITE_ROW)
+    {
         const char *salon_name = (const char *)sqlite3_column_text(stmt, 0);
         create_salon_directory(salon_name); // Créer le dossier pour chaque salon
     }
@@ -237,8 +333,6 @@ void initialize_salon_directories() {
     sqlite3_finalize(stmt);
     sqlite3_close(db);
 }
-
-
 
 void create_channel(client_t *client, const char *channel_name)
 {
@@ -298,7 +392,8 @@ void create_channel(client_t *client, const char *channel_name)
     sqlite3_close(db);
 }
 
-void delete_salon_directory(const char *salon_name) {
+void delete_salon_directory(const char *salon_name)
+{
     char directory_path[256];
     snprintf(directory_path, sizeof(directory_path), "server/%s", salon_name);
 
@@ -307,7 +402,6 @@ void delete_salon_directory(const char *salon_name) {
     snprintf(command, sizeof(command), "rm -rf %s", directory_path);
     system(command);
 }
-
 
 void delete_channel(client_t *client, const char *channel_name)
 {
@@ -395,6 +489,71 @@ void delete_channel(client_t *client, const char *channel_name)
     sqlite3_close(db);
 }
 
+void receive_file(int client_socket, const char *salon_name, const char *filename)
+{
+    char directory_path[256];
+    snprintf(directory_path, sizeof(directory_path), "server/%s", salon_name);
+
+    // Créer le dossier pour le salon s'il n'existe pas déjà
+    struct stat st = {0};
+    if (stat(directory_path, &st) == -1)
+    {
+        if (mkdir(directory_path, 0700) < 0 && errno != EEXIST)
+        {
+            perror("Erreur lors de la création du dossier du salon");
+            return;
+        }
+    }
+
+    // Construire le chemin complet du fichier
+    char file_path[512];
+    snprintf(file_path, sizeof(file_path), "%s/%s", directory_path, filename);
+
+    // Ouvrir le fichier pour l'écriture
+    FILE *file = fopen(file_path, "wb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de la création du fichier");
+        return;
+    }
+
+    char buffer[PACKET_SIZE];
+    ssize_t bytes_received;
+    size_t total_bytes_received = 0;
+
+    // Recevoir le fichier en paquets
+    while ((bytes_received = recv(client_socket, buffer, sizeof(buffer), 0)) > 0)
+    {
+        fwrite(buffer, 1, bytes_received, file);
+        total_bytes_received += bytes_received;
+
+        // Si moins que PACKET_SIZE est reçu, on a atteint la fin du fichier
+        if (bytes_received < PACKET_SIZE)
+        {
+            break;
+        }
+    }
+
+    if (bytes_received < 0)
+    {
+        perror("Erreur lors de la réception des données");
+    }
+    else
+    {
+        printf("Fichier %s reçu avec succès (%zu octets).\n", filename, total_bytes_received);
+    }
+
+    fclose(file);
+
+    // Avertir tous les utilisateurs du salon que le fichier a été envoyé
+    char notification[BUFFER_SIZE];
+    snprintf(notification, sizeof(notification), "Un nouveau fichier '%s' a été envoyé dans le salon %s.\n", filename, salon_name);
+
+    // Envoyer le message à tous les utilisateurs du salon
+    send_message_to_channel(salon_name, notification, client_socket);
+}
+
+
 void list_channels(int socket)
 {
     sqlite3 *db;
@@ -480,7 +639,6 @@ void handle_list_admin(int admin_socket)
     pthread_mutex_unlock(&clients_mutex);
 }
 
-// Fonction pour gérer la commande "exit"
 void *handle_exit_command(void *server_fd_ptr)
 {
     int server_fd = *(int *)server_fd_ptr;
@@ -491,6 +649,9 @@ void *handle_exit_command(void *server_fd_ptr)
         fgets(input, sizeof(input), stdin); // Lire la commande à partir de la console
         if (strncmp(input, "shut", 4) == 0)
         {
+            // Vider la table des messages
+            clear_messages_in_db();
+
             // Supprimer tous les dossiers de salons
             const char *command = "rm -r server/*";
             system(command);
@@ -506,13 +667,64 @@ void *handle_exit_command(void *server_fd_ptr)
     return NULL;
 }
 
+
+
+
+
+void send_file_to_client(int client_socket, const char *salon_name, const char *filename)
+{
+    char file_path[512];
+    snprintf(file_path, sizeof(file_path), "server/%s/%s", salon_name, filename);
+
+    // Ouvrir le fichier en mode lecture binaire
+    FILE *file = fopen(file_path, "rb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de l'ouverture du fichier");
+        send(client_socket, "Erreur : fichier introuvable.\n", 30, 0);
+        return;
+    }
+
+    char buffer[PACKET_SIZE];
+    size_t bytes_read;
+    ssize_t bytes_sent;
+    size_t total_bytes_sent = 0;
+
+    // Envoyer le fichier en paquets
+    while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0)
+    {
+        bytes_sent = send(client_socket, buffer, bytes_read, 0);
+        if (bytes_sent < 0)
+        {
+            perror("Erreur lors de l'envoi du fichier au client");
+            fclose(file);
+            return;
+        }
+        total_bytes_sent += bytes_sent;
+    }
+
+    if (ferror(file))
+    {
+        perror("Erreur lors de la lecture du fichier");
+    }
+    else
+    {
+        printf("Fichier %s envoyé avec succès au client (%zu octets).\n", filename, total_bytes_sent);
+    }
+
+    fclose(file);
+
+    // Envoyer un paquet vide pour signaler la fin de la transmission
+    send(client_socket, "", 0, 0);
+}
+
 void *handle_client(void *arg)
 {
     int client_socket = (intptr_t)arg;
     char buffer[BUFFER_SIZE];
     client_t *client = malloc(sizeof(client_t));
     client->socket = client_socket;
-    strcpy(client->current_channel, ""); // Aucun salon par défaut
+    strcpy(client->current_channel, ""); // Initialisation correcte pour éviter une chaîne corrompue
 
     // Authentification
     char username[50], password[50];
@@ -559,24 +771,67 @@ void *handle_client(void *arg)
             break; // Déconnexion
         }
         buffer[bytes_received] = '\0'; // Terminer la chaîne reçue
+        char *channel_name = buffer + 5;
+        clean_input(channel_name);
 
         if (strncmp(buffer, "join ", 5) == 0)
         {
             char *channel_name = buffer + 5;
             clean_input(channel_name);
 
-            // Vérifier si le salon existe avant de permettre de le rejoindre
+            // Mise à jour du salon actuel côté serveur
+            strcpy(client->current_channel, channel_name);
+
+            printf("Client %s a rejoint le salon : %s\n", client->username, client->current_channel);
+
             if (channel_exists(channel_name))
             {
-                strcpy(client->current_channel, channel_name);
                 char response[BUFFER_SIZE];
                 snprintf(response, sizeof(response), "Vous avez rejoint le salon %s\n", channel_name);
                 send(client->socket, response, strlen(response), 0);
-                send_message_to_channel(channel_name, "A new user has joined the channel.\n", client->socket);
+                send_message_to_channel(client->current_channel, "A user has joined the channel.\n", client->socket);
             }
             else
             {
                 send(client->socket, "Ce salon n'existe pas.\n", 24, 0);
+            }
+        }
+
+        else if (strncmp(buffer, "send ", 5) == 0)
+        {
+            char filename[100];
+            sscanf(buffer + 5, "%99s", filename); // Extraire uniquement le nom du fichier
+
+            // Vérification si le client est dans un salon
+            if (strlen(client->current_channel) == 0)
+            {
+                send(client_socket, "Vous n'êtes dans aucun salon.\n", 31, 0);
+            }
+            else
+            {
+                // Utiliser le salon actuel du client pour stocker le fichier
+                printf("Réception du fichier '%s' pour le salon '%s'\n", filename, client->current_channel);
+
+                // Appeler la fonction pour recevoir le fichier dans le salon actuel
+                receive_file(client_socket, client->current_channel, filename);
+            }
+        }
+
+        else if (strncmp(buffer, "receive ", 8) == 0)
+        {
+            char filename[100];
+            sscanf(buffer + 8, "%99s", filename); // Extraire le nom du fichier
+
+            // Vérification si le client est dans un salon
+            if (strlen(client->current_channel) == 0)
+            {
+                send(client_socket, "Vous n'êtes dans aucun salon.\n", 31, 0);
+            }
+            else
+            {
+                // Envoyer le fichier du salon actuel au client
+                printf("Envoi du fichier '%s' au client depuis le salon '%s'\n", filename, client->current_channel);
+                send_file_to_client(client_socket, client->current_channel, filename);
             }
         }
 
@@ -658,25 +913,10 @@ void *handle_client(void *arg)
             }
         }
     }
-
-    // Nettoyer après déconnexion
-    pthread_mutex_lock(&clients_mutex);
-    for (int i = 0; i < MAX_CLIENTS; i++)
-    {
-        if (clients[i] == client)
-        {
-            clients[i] = NULL; // Retirer le client de la liste
-            break;
-        }
-    }
-    pthread_mutex_unlock(&clients_mutex);
-
-    close(client_socket);
-    free(client);
-    return NULL;
 }
 
-int main() {
+int main()
+{
     char buffer[BUFFER_SIZE];
     clear_server_directory();
     int server_fd, new_socket;
@@ -689,7 +929,8 @@ int main() {
 
     // Configuration du serveur
     server_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (server_fd < 0) {
+    if (server_fd < 0)
+    {
         perror("socket failed");
         exit(EXIT_FAILURE);
     }
@@ -698,12 +939,14 @@ int main() {
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(8080);
 
-    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
 
-    if (listen(server_fd, 5) < 0) {
+    if (listen(server_fd, 5) < 0)
+    {
         perror("listen failed");
         exit(EXIT_FAILURE);
     }
@@ -714,7 +957,8 @@ int main() {
     pthread_t exit_tid;
     pthread_create(&exit_tid, NULL, handle_exit_command, (void *)&server_fd);
 
-    while ((new_socket = accept(server_fd, (struct sockaddr *)&server_addr, &client_addr_len))) {
+    while ((new_socket = accept(server_fd, (struct sockaddr *)&server_addr, &client_addr_len)))
+    {
         pthread_t tid;
         pthread_create(&tid, NULL, handle_client, (void *)(intptr_t)new_socket);
     }
