@@ -92,7 +92,7 @@ Below is a list of available commands for interacting with the application:
   Displays all available commands.
 
 - `send filename`  
-  Sends a file named `filename`.
+  Sends a file named `filename` in the current channel.
 
 - `receive filename`  
   Receives a file in the current channel. `filename` is the name of the file you want to receive.
@@ -105,8 +105,8 @@ Below is a list of available commands for interacting with the application:
 - `delete channel_name`  
   Deletes the channel with the specified `channel_name`.
 
-- `list_admin`  
-  Lists all connected users, accessible by administrators.
+- `list_admin`
+  Lists all connected users, accessible only to administrators.
 
 ### Server Commands:
 
