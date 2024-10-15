@@ -7,14 +7,6 @@ Slime is a real-time messaging application with file-sharing capabilities and mu
 
 ## 🚀 How to Use
 
-### 🔧 Before Compiling
-
-You can compile both the client and the server at once with the following command:
-
-```bash
-make all
-```
-
 ### 1. 🔨 Compiling the Client
 
 To compile the client code, you have two options:
@@ -99,8 +91,8 @@ Below is a list of available commands for interacting with the application:
 - `help`  
   Displays all available commands.
 
-- `send_files path_to_file1 path_to_file2 ...`  
-  Sends one or more files to the current channel. [NOT IMPLEMENTED FOR NOW]
+- `send filename`  
+  Sends a file named `filename`.
 
 ### Admin Commands:
 
