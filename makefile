@@ -5,8 +5,8 @@ CC = gcc
 CFLAGS = -lpthread
 
 # Source files
-CLIENT_SRC = client.c
-SERVER_SRC = server.c
+CLIENT_SRC = src/client.c
+SERVER_SRC = src/server.c
 
 # Output binaries
 CLIENT_BIN = client.exe
@@ -14,6 +14,10 @@ SERVER_BIN = server.exe
 
 # Libraries
 LIBS_SERVER = -lsqlite3
+
+# Doxygen
+DOXYGEN = doxygen
+DOXYFILE = Doxyfile
 
 # Compile the client
 client: $(CLIENT_SRC)
@@ -27,12 +31,17 @@ server: $(SERVER_SRC)
 server_dir:
 	mkdir -p server
 
-# Compile both client and server
-all: client server
+# Rule to generate Doxygen documentation
+docs:
+	$(DOXYGEN) $(DOXYFILE)
+
+# Compile both client and server and generate documentation
+all: client server docs  # Add docs as a dependency
 
 # Clean up generated files
 clean:
 	rm -f $(CLIENT_BIN) $(SERVER_BIN)
+	rm -rf docs  # Remove the docs directory created by Doxygen
 
 # Phony targets
-.PHONY: client server clean all
+.PHONY: client server clean all docs

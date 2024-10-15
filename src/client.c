@@ -14,34 +14,51 @@
 #define BUFFER_SIZE 1024
 #define PACKET_SIZE 1024
 
-char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
+char current_channel[50] = ""; 
 
+/**
+ * @brief Cleans the input by removing the newline character.
+ * 
+ * @param str The input string to be cleaned.
+ */
 void clean_input(char *str)
 {
     char *pos;
     if ((pos = strchr(str, '\n')) != NULL)
     {
-        *pos = '\0'; // Retirer le retour à la ligne
+        *pos = '\0'; 
     }
 }
 
+/**
+ * @brief Displays the received message and restores the current user input.
+ * 
+ * @param message The message to display.
+ * @param current_input The current input from the user.
+ */
 void print_message(const char *message, const char *current_input)
 {
-    printf("\r\033[K");      // Effacer la ligne actuelle
-    printf("%s\n", message); // Afficher le message reçu du serveur
+    printf("\r\033[K");      
+    printf("%s\n", message); 
 
     if (strlen(current_input) > 0)
     {
-        printf("> %s", current_input); // Réafficher l'entrée utilisateur sauvegardée
+        printf("> %s", current_input); 
     }
     else
     {
-        printf("> "); // Réafficher le prompt si aucune entrée utilisateur
+        printf("> "); 
     }
 
-    fflush(stdout); // S'assurer que le tampon est vidé
+    fflush(stdout); 
 }
 
+/**
+ * @brief Sends a file to the server in packets.
+ * 
+ * @param socket The socket to send the file through.
+ * @param filename The name of the file to be sent.
+ */
 void send_file(int socket, const char *filename)
 {
     FILE *file = fopen(filename, "rb");
@@ -56,7 +73,6 @@ void send_file(int socket, const char *filename)
     ssize_t bytes_sent;
     size_t total_bytes_sent = 0;
 
-    // Envoyer le fichier en paquets
     while ((bytes_read = fread(buffer, 1, sizeof(buffer), file)) > 0)
     {
         size_t total_sent = 0;
@@ -85,10 +101,15 @@ void send_file(int socket, const char *filename)
 
     fclose(file);
 
-    // Envoyer un paquet vide pour signaler la fin de la transmission
     send(socket, "", 0, 0);
 }
 
+/**
+ * @brief Receives a file from the server in packets.
+ * 
+ * @param socket The socket to receive the file through.
+ * @param filename The name of the file to be received.
+ */
 void receive_file_from_server(int socket, const char *filename)
 {
     FILE *file = fopen(filename, "wb");
@@ -102,13 +123,11 @@ void receive_file_from_server(int socket, const char *filename)
     ssize_t bytes_received;
     size_t total_bytes_received = 0;
 
-    // Recevoir le fichier en paquets
     while ((bytes_received = recv(socket, buffer, sizeof(buffer), 0)) > 0)
     {
         fwrite(buffer, 1, bytes_received, file);
         total_bytes_received += bytes_received;
 
-        // Si moins que PACKET_SIZE est reçu, on a atteint la fin du fichier
         if (bytes_received < PACKET_SIZE)
         {
             break;
@@ -127,18 +146,23 @@ void receive_file_from_server(int socket, const char *filename)
     fclose(file);
 }
 
+/**
+ * @brief Thread function to continuously receive messages from the server.
+ * 
+ * @param client_socket Pointer to the client socket.
+ * @return void* 
+ */
 void *receive_messages(void *client_socket)
 {
     int client_fd = *(int *)client_socket;
     char buffer[BUFFER_SIZE];
     int bytes_received;
-    char current_input[BUFFER_SIZE] = ""; // Pour sauvegarder l'entrée utilisateur
+    char current_input[BUFFER_SIZE] = ""; 
 
     while ((bytes_received = recv(client_fd, buffer, sizeof(buffer) - 1, 0)) > 0)
     {
-        buffer[bytes_received] = '\0'; // Terminer la chaîne reçue
+        buffer[bytes_received] = '\0'; 
 
-        // Afficher le message sans effacer l'entrée utilisateur
         print_message(buffer, current_input);
     }
 
@@ -154,6 +178,12 @@ void *receive_messages(void *client_socket)
     pthread_exit(NULL);
 }
 
+/**
+ * @brief Thread function to send messages and handle user input.
+ * 
+ * @param client_socket Pointer to the client socket.
+ * @return void* 
+ */
 void *send_messages(void *client_socket)
 {
     int client_fd = *(int *)client_socket;
@@ -167,7 +197,6 @@ void *send_messages(void *client_socket)
         fgets(buffer, BUFFER_SIZE, stdin);
         clean_input(buffer);
 
-        // Sauvegarder l'entrée actuelle dans current_input
         strncpy(current_input, buffer, BUFFER_SIZE);
 
         if (strcmp(buffer, "help") == 0)
@@ -186,18 +215,16 @@ void *send_messages(void *client_socket)
 
         else if (strncmp(buffer, "send ", 5) == 0)
         {
-            char *filename = buffer + 5; // Récupérer le nom de fichier
+            char *filename = buffer + 5; 
             if (*filename)
             {
                 printf("Envoi du fichier : %s au salon %s\n", filename, current_channel);
 
-                // Envoyer d'abord la commande pour informer le serveur du nom du salon
                 char command[BUFFER_SIZE];
-                snprintf(command, sizeof(command), "send %s %s", current_channel, filename); // Inclure le nom du salon
-                send(client_fd, command, strlen(command), 0);                                // Envoyer la commande au serveur
+                snprintf(command, sizeof(command), "send %s %s", current_channel, filename); 
+                send(client_fd, command, strlen(command), 0);                                
 
-                // Envoyer le fichier
-                send_file(client_fd, filename); // Appeler la fonction pour envoyer le fichier
+                send_file(client_fd, filename); 
             }
             else
             {
@@ -207,15 +234,13 @@ void *send_messages(void *client_socket)
 
         else if (strncmp(buffer, "receive ", 8) == 0)
         {
-            char *filename = buffer + 8; // Récupérer le nom de fichier
+            char *filename = buffer + 8; 
             if (*filename)
             {
                 printf("Réception du fichier : %s\n", filename);
 
-                // Envoyer la commande de réception de fichier au serveur
                 send(client_fd, buffer, strlen(buffer), 0);
 
-                // Recevoir le fichier
                 receive_file_from_server(client_fd, filename);
             }
             else
@@ -225,24 +250,27 @@ void *send_messages(void *client_socket)
         }
 
         else if (strcmp(buffer, "disconnect") == 0)
-        { // Gérer la déconnexion
+        { 
             send(client_fd, buffer, strlen(buffer), 0);
             printf("Déconnexion...\n");
             break;
         }
         else
         {
-            // Envoi du message
             send(client_fd, buffer, strlen(buffer), 0);
         }
 
-        // Réinitialiser l'entrée utilisateur après envoi
         current_input[0] = '\0';
     }
 
     pthread_exit(NULL);
 }
 
+/**
+ * @brief Main function to initialize the client, authenticate, and manage threads.
+ * 
+ * @return int 
+ */
 int main()
 {
     int client_fd;
@@ -268,33 +296,27 @@ int main()
         exit(EXIT_FAILURE);
     }
 
-    // Authentification
     printf("Login: ");
     fgets(username, sizeof(username), stdin);
-    clean_input(username); // Nettoyer le retour à la ligne
+    clean_input(username); 
     printf("Password: ");
     fgets(password, sizeof(password), stdin);
-    clean_input(password); // Nettoyer le retour à la ligne
+    clean_input(password); 
 
-    // Envoi des informations d'identification
     char auth_info[100];
     snprintf(auth_info, sizeof(auth_info), "%s %s", username, password);
     send(client_fd, auth_info, strlen(auth_info), 0);
 
-    // Attendre la réponse d'authentification
     char auth_response[BUFFER_SIZE];
     int bytes_received = recv(client_fd, auth_response, sizeof(auth_response) - 1, 0);
     auth_response[bytes_received] = '\0';
-    printf("%s\n", auth_response); // Afficher le message d'authentification
+    printf("%s\n", auth_response); 
 
-    // Créer les threads pour recevoir et envoyer des messages
     pthread_create(&receive_thread, NULL, receive_messages, (void *)&client_fd);
     pthread_create(&send_thread, NULL, send_messages, (void *)&client_fd);
 
-    // Attendre la fin des threads
     pthread_join(send_thread, NULL);
 
-    // Terminer le thread de réception
     pthread_cancel(receive_thread);
 
     close(client_fd);
