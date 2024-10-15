@@ -59,10 +59,13 @@ make clean
 ### 6. 🔄 Additional Makefile Commands
 
 - `make all`  
-  Compiles both the client and the server.
+  Compiles the client, server and documentation.
 
 - `make clean`  
-  Removes all compiled binaries.
+  Removes all compiled binaries and documentation.
+
+- `make docs`  
+  Generate the documentation with Doxygen.
 
 ## 📝 Commands
 
