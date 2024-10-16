@@ -14,13 +14,14 @@
 
 char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
 
-void clean_input(char *str) {
+void clean_input(char *str)
+{
     char *pos;
-    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL) {
-        *pos = '\0';  // Remplacer le retour à la ligne ou retour chariot par un caractère de fin de chaîne
+    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL)
+    {
+        *pos = '\0'; // Remplacer le retour à la ligne ou retour chariot par un caractère de fin de chaîne
     }
 }
-
 
 void print_message(const char *message, const char *current_input)
 {
@@ -39,6 +40,96 @@ void print_message(const char *message, const char *current_input)
     fflush(stdout); // S'assurer que le tampon est vidé
 }
 
+void receive_file_from_server(int client_socket, const char *filename)
+{
+    // Réception de la taille du fichier
+    char buffer[BUFFER_SIZE];
+    int bytes_received = recv(client_socket, buffer, sizeof(buffer) - 1, 0);
+    if (bytes_received <= 0)
+    {
+        perror("Erreur lors de la réception de la taille du fichier");
+        return;
+    }
+    buffer[bytes_received] = '\0';
+    long file_size = atol(buffer); // Convertir la taille en nombre
+
+    // Envoyer la confirmation pour démarrer le transfert
+    send(client_socket, "OK", 2, 0);
+
+    // Ouvrir le fichier pour l'écriture
+    FILE *file = fopen(filename, "wb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de la création du fichier");
+        return;
+    }
+
+    // Recevoir les bits du fichier un par un
+    char byte;
+    long received_bytes = 0;
+    while (received_bytes < file_size)
+    {
+        int byte_received = recv(client_socket, &byte, 1, 0);
+        if (byte_received <= 0)
+        {
+            perror("Erreur lors de la réception du fichier");
+            break;
+        }
+
+        // Écrire le byte dans le fichier
+        fwrite(&byte, 1, 1, file);
+        received_bytes++;
+    }
+
+    fclose(file);
+
+    if (received_bytes == file_size)
+    {
+        printf("Fichier '%s' reçu avec succès.\n", filename);
+    }
+    else
+    {
+        printf("Erreur : fichier incomplet reçu.\n");
+    }
+}
+
+void send_file_to_server(int client_socket, const char *filename)
+{
+    FILE *file = fopen(filename, "rb");
+    if (file == NULL)
+    {
+        perror("Erreur lors de l'ouverture du fichier");
+        return;
+    }
+
+    // Obtenir la taille du fichier
+    fseek(file, 0L, SEEK_END);
+    long file_size = ftell(file);
+    rewind(file);
+
+    // Envoyer la taille du fichier au serveur
+    char size_str[20];
+    snprintf(size_str, sizeof(size_str), "%ld", file_size);
+    send(client_socket, size_str, strlen(size_str), 0);
+
+    // Attendre la confirmation du serveur pour commencer le transfert
+    char buffer[BUFFER_SIZE];
+    recv(client_socket, buffer, sizeof(buffer), 0);
+
+    // Envoyer le fichier bit par bit
+    char byte;
+    while (fread(&byte, 1, 1, file) == 1)
+    {
+        if (send(client_socket, &byte, 1, 0) < 0)
+        {
+            perror("Erreur lors de l'envoi du fichier");
+            break;
+        }
+    }
+
+    fclose(file);
+    printf("Fichier '%s' envoyé au serveur.\n", filename);
+}
 
 void handle_receive(int client_fd, char *current_input)
 {
@@ -63,8 +154,6 @@ void handle_receive(int client_fd, char *current_input)
     }
 }
 
-
-
 void handle_send(int client_fd, char *current_input)
 {
     char buffer[BUFFER_SIZE];
@@ -79,15 +168,24 @@ void handle_send(int client_fd, char *current_input)
         perror("Erreur lors de l'envoi du message");
     }
 
+    if (strncmp(buffer, "receive ", 8) == 0)
+    {
+        char *filename = buffer + 8;
+        receive_file_from_server(client_fd, filename);
+    }
+
+    else if (strncmp(buffer, "send ", 5) == 0)
+    {
+        char *filename = buffer + 5;
+        send_file_to_server(client_fd, filename);
+    }
+
     // Sauvegarde de l'entrée utilisateur
     strncpy(current_input, buffer, sizeof(current_input) - 1);
 
     // Effacer l'entrée utilisateur après l'envoi
     memset(current_input, 0, sizeof(current_input));
 }
-
-
-
 
 int main()
 {
@@ -105,7 +203,7 @@ int main()
 
     server_addr.sin_family = AF_INET;
     server_addr.sin_port = htons(8080);
-    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
+    inet_pton(AF_INET, "192.168.59.156", &server_addr.sin_addr);
 
     if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
@@ -117,12 +215,12 @@ int main()
     // Authentification
     printf("Login: ");
     fgets(username, sizeof(username), stdin);
-    //clean_input(username); // Nettoyer le retour à la ligne
+    // clean_input(username); // Nettoyer le retour à la ligne
 
     // Dans client.c, après avoir reçu le mot de passe
     printf("Password: ");
     fgets(password, sizeof(password), stdin);
-    //clean_input(password); // Nettoyer le retour à la ligne ou autres caractères parasites
+    // clean_input(password); // Nettoyer le retour à la ligne ou autres caractères parasites
 
     // Ensuite, lors de l'envoi
     char auth_info[100];
