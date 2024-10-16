@@ -121,6 +121,12 @@ Below is a list of available commands for interacting with the application:
 - `shut`  
   Shuts down the server and removes temporary files. This command is executed on the server (`server.c`).
 
+## 🖋️ Authors
+
+- Paul Bruno
+- Hugo Andrejewski
+- Mathias Chauvet
+
 ## 📜 License
 
 This project is licensed under the GPLv3 License. See the `LICENSE` file for more information.
