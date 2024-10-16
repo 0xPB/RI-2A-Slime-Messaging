@@ -17,7 +17,7 @@ char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
 void clean_input(char *str)
 {
     char *pos;
-    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL)
+    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL) // Enlever \n ou \r
     {
         *pos = '\0'; // Remplacer le retour à la ligne ou retour chariot par un caractère de fin de chaîne
     }
@@ -158,9 +158,9 @@ void handle_send(int client_fd, char *current_input)
 {
     char buffer[BUFFER_SIZE];
     printf("> ");
-    fflush(stdout);
-    fgets(buffer, BUFFER_SIZE, stdin);
-    clean_input(buffer);
+    fflush(stdout); // Vider buffer de sortie standard
+    fgets(buffer, BUFFER_SIZE, stdin); //lire une ligne de texte depuis l'entrée standar,la stocker dans le tableau buffer
+    clean_input(buffer); 
 
     // Envoi du message
     if (send(client_fd, buffer, strlen(buffer), 0) < 0)
@@ -183,7 +183,7 @@ void handle_send(int client_fd, char *current_input)
     // Sauvegarde de l'entrée utilisateur
     strncpy(current_input, buffer, sizeof(current_input) - 1);
 
-    // Effacer l'entrée utilisateur après l'envoi
+    // Effacer l'entrée utilisateur après l'envoi, remplis que avaec des 0
     memset(current_input, 0, sizeof(current_input));
 }
 
@@ -194,16 +194,16 @@ int main()
     char username[50], password[50];
     char current_input[BUFFER_SIZE] = ""; // Pour sauvegarder l'entrée utilisateur
 
-    client_fd = socket(AF_INET, SOCK_STREAM, 0);
+    client_fd = socket(AF_INET, SOCK_STREAM, 0); //TCP
     if (client_fd < 0)
     {
         perror("socket() failed");
         exit(EXIT_FAILURE);
     }
 
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_port = htons(8080);
-    inet_pton(AF_INET, "192.168.59.156", &server_addr.sin_addr);
+    server_addr.sin_family = AF_INET; // IPV4
+    server_addr.sin_port = htons(8080); //PORT
+    inet_pton(AF_INET, "192.168.59.156", &server_addr.sin_addr); //SET IP + PORT
 
     if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {

@@ -1014,7 +1014,8 @@ int main()
                         fds[i].fd = -1;        // Retirer le socket de poll
                     }
                 }
-
+                // Vider la table des messages
+                clear_messages_in_db();
                 // Supprimer tous les dossiers de salons
                 const char *command = "rm -rf server/*";
                 system(command);
