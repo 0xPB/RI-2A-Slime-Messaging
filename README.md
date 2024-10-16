@@ -65,7 +65,7 @@ make clean
   Removes all compiled binaries, documentation, and the `server` directory.
 
 - `make docs`  
-  Generates the documentation with Doxygen.
+  Generates the documentation with Doxygen, open `index.html` located in `docs/html/` to read the documentation.
 
 - `make server_dir`  
   Creates the `server` directory in `src`.
