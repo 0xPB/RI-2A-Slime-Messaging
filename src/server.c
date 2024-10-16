@@ -527,34 +527,6 @@ void handle_list_admin(int admin_socket)
     }
 }
 
-void *handle_exit_command(void *server_fd_ptr)
-{
-    int server_fd = *(int *)server_fd_ptr;
-    char input[BUFFER_SIZE];
-
-    while (1)
-    {
-        fgets(input, sizeof(input), stdin); // Lire la commande à partir de la console
-        if (strncmp(input, "shut", 4) == 0)
-        {
-            // Vider la table des messages
-            clear_messages_in_db();
-
-            // Supprimer tous les dossiers de salons
-            const char *command = "rm -r server/*";
-            system(command);
-
-            // Fermer le socket du serveur
-            close(server_fd);
-
-            // Quitter le programme
-            exit(0);
-        }
-    }
-
-    return NULL;
-}
-
 void notify_current_channel(client_t *client)
 {
     // Vérification que le client n'est pas NULL et que le salon actuel est valide
