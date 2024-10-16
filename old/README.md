@@ -13,7 +13,7 @@ To compile the client code, you have two options:
 
 Using `gcc`:
 ```bash
-gcc src/client.c -o src/client
+gcc client.c -o client -lpthread
 ```
 
 Or using the `make` command:
@@ -27,7 +27,7 @@ To compile the server code with SQLite support, you can also choose between:
 
 Using `gcc`:
 ```bash
-gcc src/server.c -o src/server -lsqlite3
+gcc server.c -o server -lsqlite3 -lpthread
 ```
 
 Or using the `make` command:
@@ -39,14 +39,14 @@ make server
 
 Start the server by running:
 ```bash
-./src/server.exe
+./server.exe
 ```
 
 ### 4. ▶️ Launching Clients
 
 You can launch as many clients as you need with the following command:
 ```bash
-./src/client.exe
+./client.exe
 ```
 
 ### 5. 🧹 Cleaning Up
@@ -59,16 +59,13 @@ make clean
 ### 6. 🔄 Additional Makefile Commands
 
 - `make all`  
-  Compiles the client, server, documentation, and creates the `server` directory in `src`.
+  Compiles the client, server and documentation.
 
 - `make clean`  
-  Removes all compiled binaries, documentation, and the `server` directory.
+  Removes all compiled binaries and documentation.
 
 - `make docs`  
-  Generates the documentation with Doxygen.
-
-- `make server_dir`  
-  Creates the `server` directory in `src`.
+  Generate the documentation with Doxygen.
 
 ## 📝 Commands
 
