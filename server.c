@@ -1,26 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <poll.h>
-#include <sqlite3.h>
-#include <stdbool.h>
-#include <sys/stat.h>
-#include <string.h>
-#include <fcntl.h>
-#include <errno.h>
-
-#define BUFFER_SIZE 1024
-#define MAX_CLIENTS 10
-
-typedef struct
-{
-    int socket;
-    char username[50];
-    char current_channel[50]; // salon actuel
-    int is_admin;             // 1 pour admin, 0 pour utilisateur normal
-} client_t;
+#include "server.h"
 
 client_t *clients[MAX_CLIENTS];
 

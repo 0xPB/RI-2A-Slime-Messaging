@@ -1,18 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sqlite3.h>
-#include <stdbool.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <poll.h>
-
-#define BUFFER_SIZE 1024
-
-char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
+#include "client.h"
 
 void clean_input(char *str)
 {
