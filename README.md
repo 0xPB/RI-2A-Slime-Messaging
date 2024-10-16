@@ -123,9 +123,9 @@ Below is a list of available commands for interacting with the application:
 
 ## 🖋️ Authors
 
-- Paul Bruno
-- Hugo Andrejewski
-- Mathias Chauvet
+- Paul Bruno [LinkedIn](https://www.linkedin.com/in/paulbruno33)
+- Hugo Andrejewski [LinkedIn](https://www.linkedin.com/in/hugo-andrejewski-a0385b253)
+- Mathias Chauvet [LinkedIn](https://www.linkedin.com/in/mathias-chauvet-022447204)
 
 ## 📜 License
 
