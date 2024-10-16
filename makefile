@@ -14,24 +14,24 @@ SERVER_BIN = src/server.exe
 # Libraries
 LIBS_SERVER = -lsqlite3
 
-# Compile the client
-client: $(CLIENT_SRC)
-	$(CC) $(CLIENT_SRC) -o $(CLIENT_BIN)
-
-# Compile the server with SQLite support
-server: $(SERVER_SRC)
-	$(CC) $(SERVER_SRC) -o $(SERVER_BIN) $(LIBS_SERVER)
-
 # Rule to create the server directory in the src folder if it doesn't exist
 server_dir:
 	mkdir -p src/server
+
+# Compile the client
+client: server_dir $(CLIENT_SRC)
+	$(CC) $(CLIENT_SRC) -o $(CLIENT_BIN)
+
+# Compile the server with SQLite support
+server: server_dir $(SERVER_SRC)
+	$(CC) $(SERVER_SRC) -o $(SERVER_BIN) $(LIBS_SERVER)
 
 # Rule to generate Doxygen documentation (force execution)
 docs:
 	doxygen Doxyfile
 
 # Compile both client and server
-all: client server docs server_dir
+all: client server docs
 
 # Clean up generated files
 clean:
