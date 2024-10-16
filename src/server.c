@@ -986,6 +986,7 @@ int main()
                         fds[i].fd = -1;        // Retirer le socket de poll
                     }
                 }
+
                 // Vider la table des messages
                 clear_messages_in_db();
                 // Supprimer tous les dossiers de salons
@@ -998,7 +999,7 @@ int main()
 
                 // Quitter le programme
                 printf("Serveur arrêté.\n");
-                exit(0);  // Terminer le programme proprement
+                exit(0); // Terminer le programme proprement
             }
         }
 
@@ -1016,4 +1017,3 @@ int main()
     close(server_fd);
     return 0;
 }
-

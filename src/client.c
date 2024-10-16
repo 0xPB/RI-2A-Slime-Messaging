@@ -17,7 +17,7 @@ char current_channel[50] = ""; // Variable globale pour stocker le salon actuel
 void clean_input(char *str)
 {
     char *pos;
-    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL) // Enlever \n ou \r
+    if ((pos = strchr(str, '\n')) != NULL || (pos = strchr(str, '\r')) != NULL)
     {
         *pos = '\0'; // Remplacer le retour à la ligne ou retour chariot par un caractère de fin de chaîne
     }
@@ -109,7 +109,7 @@ void send_file_to_server(int client_socket, const char *filename)
 
     // Envoyer la taille du fichier au serveur
     char size_str[20];
-    snprintf(size_str, sizeof(size_str), "%ld", file_size);
+    snprintf(size_str, sizeof(size_str), "%ld", file_size); // écrire chaîne de caractère dans un buffer pour éviter débordement de mémoire
     send(client_socket, size_str, strlen(size_str), 0);
 
     // Attendre la confirmation du serveur pour commencer le transfert
@@ -158,9 +158,9 @@ void handle_send(int client_fd, char *current_input)
 {
     char buffer[BUFFER_SIZE];
     printf("> ");
-    fflush(stdout); // Vider buffer de sortie standard
-    fgets(buffer, BUFFER_SIZE, stdin); //lire une ligne de texte depuis l'entrée standar,la stocker dans le tableau buffer
-    clean_input(buffer); 
+    fflush(stdout);
+    fgets(buffer, BUFFER_SIZE, stdin);
+    clean_input(buffer);
 
     // Envoi du message
     if (send(client_fd, buffer, strlen(buffer), 0) < 0)
@@ -180,10 +180,26 @@ void handle_send(int client_fd, char *current_input)
         send_file_to_server(client_fd, filename);
     }
 
+    else if (strcmp(buffer, "help") == 0)
+    {
+        printf("\nLister tous les salons\t\t\t\t\t\tUsage : list\n");
+        printf("\nLister tous les utilisateurs connectés dans le salon\t\tUsage : list_users\n");
+        printf("\nLister tous les utilisateurs connectés dans tous les salons\tUsage : list_admin\n");
+        printf("\nAfficher le salon actuel\t\t\t\t\tUsage : current\n");
+        printf("\nCréer un salon\t\t\t\t\t\t\tUsage : create <nom_du_salon>\n");
+        printf("\nSuprimer un salon\t\t\t\t\t\tUsage : delete <nom_du_salon>\n");
+        printf("\nRejoindre un salon\t\t\t\t\t\tUsage : join <nom_du_salon>\n");
+        printf("\nQuitter le salon\t\t\t\t\t\tUsage : leave\n");
+        printf("\nEnvoyer un fichier au salon actuel.\t\t\t\tUsage : send <nom_du_fichier>\n");
+        printf("\nRecevoir un fichier du salon actuel.\t\t\t\tUsage : receive <nom_du_fichier>\n");
+        printf("\nSe déconnecter du serveur.\t\t\t\t\tUsage : disconnect\n");
+        printf("\n");
+    }
+
     // Sauvegarde de l'entrée utilisateur
     strncpy(current_input, buffer, sizeof(current_input) - 1);
 
-    // Effacer l'entrée utilisateur après l'envoi, remplis que avaec des 0
+    // Effacer l'entrée utilisateur après l'envoi
     memset(current_input, 0, sizeof(current_input));
 }
 
@@ -194,16 +210,16 @@ int main()
     char username[50], password[50];
     char current_input[BUFFER_SIZE] = ""; // Pour sauvegarder l'entrée utilisateur
 
-    client_fd = socket(AF_INET, SOCK_STREAM, 0); //TCP
+    client_fd = socket(AF_INET, SOCK_STREAM, 0); // sock_stream - TCP
     if (client_fd < 0)
     {
         perror("socket() failed");
         exit(EXIT_FAILURE);
     }
 
-    server_addr.sin_family = AF_INET; // IPV4
-    server_addr.sin_port = htons(8080); //PORT
-    inet_pton(AF_INET, "192.168.59.156", &server_addr.sin_addr); //SET IP + PORT
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_port = htons(8080);
+    inet_pton(AF_INET, "127.0.0.1", &server_addr.sin_addr);
 
     if (connect(client_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
@@ -215,12 +231,10 @@ int main()
     // Authentification
     printf("Login: ");
     fgets(username, sizeof(username), stdin);
-    // clean_input(username); // Nettoyer le retour à la ligne
 
     // Dans client.c, après avoir reçu le mot de passe
     printf("Password: ");
     fgets(password, sizeof(password), stdin);
-    // clean_input(password); // Nettoyer le retour à la ligne ou autres caractères parasites
 
     // Ensuite, lors de l'envoi
     char auth_info[100];
@@ -244,15 +258,15 @@ int main()
 
     while (1)
     {
-        int poll_count = poll(fds, 2, -1); // Attendre un événement sur stdin ou le socket client
-        if (poll_count < 0)
+        int poll_count = poll(fds, 2, -1); // Attendre indéfiniment (-1) un événement sur stdin ou le socket client (2)
+        if (poll_count < 0)                // valeur négative, erreur
         {
             perror("poll() failed");
             break;
         }
 
         // Vérifier si l'utilisateur a entré une commande
-        if (fds[0].revents & POLLIN)
+        if (fds[0].revents & POLLIN) // après l'appel à poll pour indiquer ce qu'il s'est réellement passé
         {
             handle_send(client_fd, current_input); // Gérer l'entrée utilisateur et envoyer le message
         }
