@@ -16,7 +16,7 @@ Using `gcc`:
 gcc client.c -o client.exe
 ```
 
-Note: the client uses by default `localhost (127.0.0.1)`; you can change this to another IP by modifying `line 222` in `client.c`.
+Note: the client uses by default `localhost (127.0.0.1)`; you can change this to another IP by modifying `line 208` in `client.c`.
 
 Or using the `make` command:
 ```bash
