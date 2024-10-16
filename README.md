@@ -16,6 +16,8 @@ Using `gcc`:
 gcc src/client.c -o src/client
 ```
 
+Note: clients use by default `localhost (127.0.0.1)` you can change to another IP, by modifying `line 222` in `client.c`.
+
 Or using the `make` command:
 ```bash
 make client

@@ -1,5 +1,14 @@
+
 #ifndef SERVER_H
 #define SERVER_H
+
+/**
+ * @file server.h
+ * @brief Header file for the server-side functionalities of the messaging application.
+ *
+ * This file contains the declarations for the functions used in the server-side of the messaging application.
+ * It includes necessary libraries and defines important constants used throughout the server.
+ */
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,214 +22,176 @@
 #include <fcntl.h>
 #include <errno.h>
 
+/** Buffer size for message handling */
 #define BUFFER_SIZE 1024
+
+/** Maximum number of clients that can connect to the server */
 #define MAX_CLIENTS 10
 
-/** 
- * @brief Structure representing a connected client.
- */
+/** Structure to hold client information */
 typedef struct
 {
-    int socket;                    /**< The socket descriptor for the client */
-    char username[50];             /**< The username of the client */
-    char current_channel[50];      /**< The current channel the client is in */
-    int is_admin;                  /**< 1 if the client is an admin, 0 if a regular user */
+    int socket;                  /**< Client socket descriptor */
+    char username[50];          /**< Username of the client */
+    char current_channel[50];   /**< Current channel the client is in */
+    int is_admin;               /**< Admin status: 1 for admin, 0 for regular user */
 } client_t;
 
-client_t *clients[MAX_CLIENTS]; /**< Array of connected clients */
-
-/** 
- * @brief Structure for storing connected users.
- */
-typedef struct
-{
-    char username[50];             /**< The username of the connected user */
-    int is_admin;                  /**< 1 if the user is an admin, 0 if a regular user */
-} ConnectedUser;
-
-ConnectedUser connected_users[MAX_CLIENTS]; /**< Array to store connected users */
-int user_count = 0;                          /**< Count of connected users */
-
 /**
- * @brief Checks if a user is an admin.
+ * @brief Check if the user is an admin.
  *
  * @param username The username to check.
- * @return Returns 1 if the user is an admin, 0 otherwise.
+ * @return int Returns 1 if the user is an admin, 0 otherwise.
  */
 int is_admin(const char *username);
 
 /**
- * @brief Cleans the input string by removing newline characters.
+ * @brief Clean input string by removing newline characters.
  *
- * This function replaces newline characters (`\n` or `\r`) with a null terminator
- * to properly format user input.
- *
- * @param str Pointer to the string to be cleaned.
+ * @param str The string to clean.
  */
 void clean_input(char *str);
 
 /**
- * @brief Clears the server's directory by removing all files.
- *
- * This function uses the system command to remove all files in the server directory.
+ * @brief Clear the server directory by removing all files.
  */
 void clear_server_directory();
 
 /**
- * @brief Authenticates a user based on username and password.
- *
- * This function checks the provided username and password against the database
- * to authenticate the user.
+ * @brief Authenticate a user by username and password.
  *
  * @param username The username of the user.
  * @param password The password of the user.
- * @return Returns 1 if authentication is successful, 0 otherwise.
+ * @return int Returns 1 on successful authentication, 0 otherwise.
  */
 int authenticate_user(const char *username, const char *password);
 
 /**
- * @brief Stores a file in the specified channel directory.
+ * @brief Store a file in the specified salon.
  *
- * @param salon_name The name of the channel where the file will be stored.
- * @param filename The name of the file to be stored.
+ * @param salon_name The name of the salon where the file will be stored.
+ * @param filename The name of the file to store.
  */
 void store_file_in_salon(const char *salon_name, const char *filename);
 
 /**
- * @brief Stores a message in the database.
+ * @brief Store a message in the database associated with the specified channel.
  *
- * @param channel The name of the channel where the message was sent.
- * @param username The username of the sender.
+ * @param channel The channel where the message belongs.
+ * @param username The username of the message sender.
  * @param message The message to store.
  */
 void store_message_in_db(const char *channel, const char *username, const char *message);
 
 /**
- * @brief Clears all messages from the database.
- *
- * This function deletes all records from the messages table in the database.
+ * @brief Clear all messages from the database.
  */
 void clear_messages_in_db();
 
 /**
- * @brief Deletes the directory of the specified channel.
+ * @brief Delete the directory of the specified salon.
  *
- * @param salon_name The name of the channel whose directory will be deleted.
+ * @param salon_name The name of the salon to delete.
  */
 void delete_salon_directory(const char *salon_name);
 
 /**
- * @brief Creates a directory for the specified channel.
+ * @brief Create a directory for the specified salon if it does not exist.
  *
- * @param salon_name The name of the channel for which the directory will be created.
+ * @param salon_name The name of the salon to create a directory for.
  */
 void create_salon_directory(const char *salon_name);
 
 /**
- * @brief Checks if a channel exists in the database.
+ * @brief Check if the specified channel exists.
  *
  * @param channel_name The name of the channel to check.
- * @return Returns 1 if the channel exists, 0 otherwise.
+ * @return int Returns 1 if the channel exists, 0 otherwise.
  */
 int channel_exists(const char *channel_name);
 
 /**
- * @brief Creates a channel and notifies the users.
+ * @brief Create a new channel if the user is an admin and it does not already exist.
  *
- * @param client Pointer to the client requesting the channel creation.
- * @param channel_name The name of the channel to create.
+ * @param client The client requesting the channel creation.
+ * @param channel_name The name of the new channel.
  */
 void create_channel(client_t *client, const char *channel_name);
 
 /**
- * @brief Lists the users in the current channel for the specified client.
+ * @brief List all users currently in the same channel as the client.
  *
- * @param client Pointer to the client requesting the user list.
+ * @param client The client requesting the user list.
  */
 void list_users_in_channel(client_t *client);
 
 /**
- * @brief Sends a message to all users in the specified channel.
+ * @brief Send a message to all users in the specified channel.
  *
- * @param channel The name of the channel.
- * @param message The message to be sent.
+ * @param channel The channel to send the message to.
+ * @param message The message to send.
  * @param sender_socket The socket of the user sending the message.
  */
 void send_message_to_channel(const char *channel, const char *message, int sender_socket);
 
 /**
- * @brief Deletes a channel and notifies all users in that channel.
+ * @brief Delete a specified channel if the user is an admin.
  *
- * @param client Pointer to the client requesting the channel deletion.
+ * @param client The client requesting the channel deletion.
  * @param channel_name The name of the channel to delete.
  */
 void delete_channel(client_t *client, const char *channel_name);
 
 /**
- * @brief Lists all channels in the database and sends them to the client.
+ * @brief List all available channels to the specified socket.
  *
- * @param socket The socket of the client to send the channel list.
+ * @param socket The socket to send the list of channels to.
  */
 void list_channels(int socket);
 
 /**
- * @brief Handles the request of the admin to list all connected users.
+ * @brief Handle the request to list all users and their channels for an admin.
  *
  * @param admin_socket The socket of the admin requesting the user list.
  */
 void handle_list_admin(int admin_socket);
 
 /**
- * @brief Notifies the current channel to the specified client.
+ * @brief Notify the client of their current channel.
  *
- * @param client Pointer to the client whose current channel is being notified.
+ * @param client The client whose current channel is to be notified.
  */
 void notify_current_channel(client_t *client);
 
 /**
- * @brief Initializes the directories for existing channels.
- *
- * This function creates directories for all channels that exist in the database.
+ * @brief Initialize directories for existing salons based on the database.
  */
 void initialize_salon_directories();
 
 /**
- * @brief Sends a specified file to a client.
+ * @brief Send a file to a client from a specified salon.
  *
- * @param client_socket The socket of the client to send the file.
- * @param salon_name The name of the channel where the file is stored.
- * @param filename The name of the file to be sent.
+ * @param client_socket The socket of the client receiving the file.
+ * @param salon_name The name of the salon where the file is located.
+ * @param filename The name of the file to send.
  */
 void send_file_to_client(int client_socket, const char *salon_name, const char *filename);
 
 /**
- * @brief Receives a file from a client and stores it in the specified channel.
+ * @brief Receive a file from a client and store it in the specified salon.
  *
  * @param client_socket The socket of the client sending the file.
- * @param salon_name The name of the channel where the file will be stored.
+ * @param salon_name The name of the salon where the file will be stored.
  * @param filename The name of the file being sent.
  */
 void receive_file_from_client(int client_socket, const char *salon_name, const char *filename);
 
 /**
- * @brief Handles communication with a specific client.
+ * @brief Handle communication with a connected client.
  *
- * This function processes incoming messages from the client and executes commands
- * based on the received input.
- *
- * @param client_socket The socket of the client.
- * @param client Pointer to the client structure.
+ * @param client_socket The socket of the client to handle.
+ * @param client The client structure associated with this socket.
  */
 void handle_client(int client_socket, client_t *client);
-
-/**
- * @brief Main function to start the server.
- *
- * This function initializes the server, accepts incoming connections,
- * and manages communication with clients.
- *
- * @return Returns 0 on successful execution, or exits on failure.
- */
-int main();
 
 #endif // SERVER_H

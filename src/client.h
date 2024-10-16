@@ -1,4 +1,3 @@
-
 #ifndef CLIENT_H
 #define CLIENT_H
 
@@ -16,81 +15,62 @@
 
 #define BUFFER_SIZE 1024
 
-char current_channel[50]; /**< Global variable to store the current channel */
+extern char current_channel[50]; /**< Global variable to store the current channel */
 
 /**
- * @brief Cleans the input string by removing newline characters.
- *
- * This function replaces newline characters (`\n` or `\r`) with a null terminator
- * to properly format user input.
- *
- * @param str Pointer to the string to be cleaned.
+ * @brief Cleans the input string by removing newline or carriage return characters.
+ * 
+ * @param str The input string to clean.
  */
 void clean_input(char *str);
 
 /**
- * @brief Prints a message to the console.
- *
- * This function displays a received message from the server
- * and re-prompts the user for input.
- *
- * @param message The message to be printed.
- * @param current_input The user's current input to be displayed again.
+ * @brief Displays a message from the server and restores the user's input.
+ * 
+ * @param message The message to display.
+ * @param current_input The current user input to restore after displaying the message.
  */
 void print_message(const char *message, const char *current_input);
 
 /**
  * @brief Receives a file from the server.
- *
- * This function receives a file from the server, writing it to the specified filename.
- * It first receives the file size and then receives the file content byte by byte.
- *
+ * 
+ * This function receives a file from the server, storing it in the specified filename.
+ * 
  * @param client_socket The socket connected to the server.
- * @param filename The name of the file to be created and written to.
+ * @param filename The name of the file to receive.
  */
 void receive_file_from_server(int client_socket, const char *filename);
 
 /**
  * @brief Sends a file to the server.
- *
- * This function reads a file from the specified filename and sends it to the server,
- * first transmitting the file size followed by the file content.
- *
+ * 
+ * This function sends a file to the server from the specified filename.
+ * 
  * @param client_socket The socket connected to the server.
- * @param filename The name of the file to be sent.
+ * @param filename The name of the file to send.
  */
 void send_file_to_server(int client_socket, const char *filename);
 
 /**
  * @brief Handles the reception of messages from the server.
- *
- * This function receives messages from the server and processes them.
- * If a message is received, it is printed to the console.
- *
- * @param client_fd The socket file descriptor for the client.
- * @param current_input The user's current input to be displayed if necessary.
+ * 
+ * This function is responsible for handling the reception of messages or data from the server,
+ * including disconnect messages or other events.
+ * 
+ * @param client_fd The socket connected to the server.
+ * @param current_input The current user input to maintain consistency during message reception.
  */
 void handle_receive(int client_fd, char *current_input);
 
 /**
- * @brief Handles sending messages or files to the server.
- *
- * This function reads user input and sends messages or files to the server.
- * It also provides help information for commands.
- *
- * @param client_fd The socket file descriptor for the client.
- * @param current_input The user's current input to be saved and managed.
+ * @brief Handles sending user input to the server.
+ * 
+ * This function manages sending user messages or commands to the server, including file transfers.
+ * 
+ * @param client_fd The socket connected to the server.
+ * @param current_input The current user input to manage.
  */
 void handle_send(int client_fd, char *current_input);
-
-/**
- * @brief Main function to run the client application.
- *
- * This function initializes the client, handles user authentication,
- * and manages communication with the server using polling.
- *
- * @return Returns 0 on successful execution, or exits on failure.
- */
-int main();
 
 #endif // CLIENT_H

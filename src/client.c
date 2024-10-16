@@ -1,14 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-#include <sqlite3.h>
-#include <stdbool.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <poll.h>
+#include "client.h"
 
 #define BUFFER_SIZE 1024
 
