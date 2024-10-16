@@ -13,10 +13,10 @@ To compile the client code, you have two options:
 
 Using `gcc`:
 ```bash
-gcc src/client.c -o src/client
+gcc client.c -o client
 ```
 
-Note: clients use by default `localhost (127.0.0.1)` you can change to another IP, by modifying `line 222` in `client.c`.
+Note: the client uses by default `localhost (127.0.0.1)`; you can change this to another IP by modifying `line 222` in `client.c`.
 
 Or using the `make` command:
 ```bash
@@ -29,7 +29,7 @@ To compile the server code with SQLite support, you can also choose between:
 
 Using `gcc`:
 ```bash
-gcc src/server.c -o src/server -lsqlite3
+gcc server.c -o server -lsqlite3
 ```
 
 Or using the `make` command:
@@ -41,14 +41,14 @@ make server
 
 Start the server by running:
 ```bash
-./src/server.exe
+./server.exe
 ```
 
 ### 4. ▶️ Launching Clients
 
 You can launch as many clients as you need with the following command:
 ```bash
-./src/client.exe
+./client.exe
 ```
 
 ### 5. 🧹 Cleaning Up
@@ -61,16 +61,16 @@ make clean
 ### 6. 🔄 Additional Makefile Commands
 
 - `make all`  
-  Compiles the client, server, documentation, and creates the `server` directory in `src`.
+  Compiles the client, server, documentation, and creates the `server` directory.
 
 - `make clean`  
   Removes all compiled binaries, documentation, and the `server` directory.
 
 - `make docs`  
-  Generates the documentation with Doxygen, open `index.html` located in `docs/html/` to read the documentation.
+  Generates the documentation with Doxygen; open `index.html` located in `docs/html/` to read the documentation.
 
 - `make server_dir`  
-  Creates the `server` directory in `src`.
+  Creates the `server` directory.
 
 ## 📝 Commands
 
@@ -113,7 +113,7 @@ Below is a list of available commands for interacting with the application:
 - `delete channel_name`  
   Deletes the channel with the specified `channel_name`.
 
-- `list_admin`
+- `list_admin`  
   Lists all connected users, accessible only to administrators.
 
 ### Server Commands:
