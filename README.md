@@ -13,7 +13,7 @@ To compile the client code, you have two options:
 
 Using `gcc`:
 ```bash
-gcc client.c -o client
+gcc client.c -o client.exe
 ```
 
 Note: the client uses by default `localhost (127.0.0.1)`; you can change this to another IP by modifying `line 222` in `client.c`.
@@ -29,7 +29,7 @@ To compile the server code with SQLite support, you can also choose between:
 
 Using `gcc`:
 ```bash
-gcc server.c -o server -lsqlite3
+gcc server.c -o server.exe -lsqlite3
 ```
 
 Or using the `make` command:
