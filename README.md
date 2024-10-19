@@ -25,6 +25,12 @@ make client
 
 ### 2. 🔨 Compiling the Server
 
+Please make sure that SQLite is installed on your operating system:
+```bash
+sudo apt update
+sudo apt install sqlite3 libsqlite3-dev
+```
+
 To compile the server code with SQLite support, you can also choose between:
 
 Using `gcc`:
